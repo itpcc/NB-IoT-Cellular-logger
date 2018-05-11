@@ -2,7 +2,8 @@
 
 This mini-project is for test using `DEVIO NB-SHIELD I` and AIS NB-IoT network by logging cellular information with the GPS coordinate.
 
-You can read the full article about this mini-project at `TBA`.
+You can read the full article about this mini-project at [Article "รีวิว DEVIO NB-Shield I และ Mini-project: Cellular Tower logger
+"](https://www.itpcc.net/tip-and-technic/review-devio-nb-shield-i-and-mini-project-cellular-tower-logger/).
 
 ## Device_code
 
