@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>ITPCC: AIS NB-IoT cellular location</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.css">
+    <link href="https://fonts.googleapis.com/css?family=Kanit|Pridi" rel="stylesheet">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: 'Pridi', serif;
+        font-size: 12px;
+      }
+      h1, h2, h3{
+        font-family: 'Kanit', sans-serif;
+        font-size: 1.25rem;
+      }
+
+      #mapInfo{
+        position: absolute;
+        width: 25%;
+        background: #01579b;
+        color: white;
+        min-height: 10%;
+        left: 0;
+        top: 5%;
+        padding: 10px;
+        font-size: 1rem;
+      }
+
+      @media screen and (max-width: 300px) {
+        #mapInfo{
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="mapInfo">
+      <h1>ตำแหน่งที่ตั้งเสา AIS NB-IoT</h1>
+      <p>แผนที่แสดงตำแหน่งที่ตั้งเสา AIS NB-IoT โดยคร่าวๆ จากการเก็บข้อมูลโดย DEVIO NB-SHIELD I ร่วมกับ GPS Module</p>
+      <p><img src="https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png" height="24" alt="map marker"> จุดที่เก็บข้อมูล</p>
+      <p><img src="./radio_tower.png" height="24" alt="radio tower"> ที่ตั้งเสาโดยประมาณ</p>
+      <p><span style="color: #bf360c">◯</span> รัศมีของสัญญาณที่รับได้ของเสานั้น</p>
+      <p><small>ข้อมูลดังกล่าวเป็นการเก็บข้อมูลโดยอิสระ ไม่มีส่วนได้ส่วนเสียใดกับบริษัท แอดวารนซ์ อินโฟร์ เซอร์วิส จำกัด (มหาชน)</small></p>
+    </div>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      var markers = {},
+          infoWindow = {},
+          circles = {};
+      function initMap() {
+        // Create the map.
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 12,
+          mapTypeId: 'terrain'
+        });
+        var bounds = new google.maps.LatLngBounds();
+
+        axios.get('./result.json')
+          .then(function(response) {
+            var data = response.data;
+
+            for(id in data.points){
+              if(typeof data.points[id].LAT === "undefined")
+                continue;
+
+              var markerInfo = {
+                position: {
+                  lat: data.points[id].LAT,
+                  lng: data.points[id].LNG
+                },
+                map: map,
+                title: 'Point '+id
+              };
+              var circleKey = data.points[id]['networkCode']+'_'+
+                data.points[id]['TAC']+'_'+
+                data.points[id]['ECI'];
+
+              if(
+                typeof data.circle[circleKey] !== "undefined" &&
+                data.circle[circleKey].sequence == id
+              )
+                markerInfo.icon = document.URL.substr(0,document.URL.lastIndexOf('/'))+'/radio_tower.png';
+
+              markers[id] = new google.maps.Marker(markerInfo);
+              markers[id].markerId = id;
+
+              bounds.extend(markers[id].position);
+
+
+              var content = '<dl>';
+              for(key in data.points[id]){
+                content += '<dt>'+key+'</dt><dd>'+data.points[id][key]+'</dd>';
+              }
+              content += '</dl>';
+
+              infoWindow[id] = new google.maps.InfoWindow({
+                content: content
+              });
+
+              google.maps.event.addListener(markers[id], 'click', (function(currId){ 
+                  return function() {
+                     infoWindow[currId].open(map, markers[currId]);
+                  };
+              })(id));
+            }
+
+            var i = 0;
+            for(id in data.circle){
+              circles[id] = new google.maps.Circle({
+                strokeColor: (i%2 == 0)?'#bf360c':'#0d47a1',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: (i%2 == 0)?'#ff5722':'#2196f3',
+                fillOpacity: 0.35,
+                map: map,
+                center: data.circle[id].center,
+                radius: data.circle[id].radius
+              }); 
+              i++;
+            }
+
+            map.fitBounds(bounds);
+
+          });
+      }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" type="text/javascript"></script>
+
+  </body>
+</html>
